@@ -1,0 +1,7 @@
+{
+    "name" : "www.pongrass.net/pep",
+    "description": "Pongrass Editorial Plugin for Wordpress",
+    "require": {
+        "php": ">=7.0"
+    }
+}
