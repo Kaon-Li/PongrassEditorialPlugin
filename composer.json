@@ -1,6 +1,8 @@
 {
     "name" : "www.pongrass.net/pep",
     "description": "Pongrass Editorial Plugin for Wordpress",
+    "type":"wordpress-plugin",
+    "license" : "MIT",
     "require": {
         "php": ">=7.0"
     }
