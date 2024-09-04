@@ -332,6 +332,7 @@ class PEPjsonServer {
         $caption = $fileinfo['caption'];
         if (!isset($caption)) $caption = '';
 		$use_caption_shortcode = $fileinfo['use_caption_shortcode'];
+		$upload_as_block = $fileinfo['upload_as_block'];
         
         $image_size = $fileinfo['image_size'];
         $image_width = 640;
@@ -478,6 +479,9 @@ class PEPjsonServer {
 			 // $content = apply_filters('the_content', $content);
 			 
 			 $picture_marker = '<!-- PictureMarker['.$filename.']-->';
+
+			 $image_prefix = chr(0x0A).'<!-- wp:image {"className":"aligncenter"} -->'.chr(0x0A).'<figure class=\"wp-block-image aligncenter\">';
+			 $image_suffix = '</figure>'.chr(0x0A).'<!-- /wp:image -->'.chr(0x0A);
 			 
 			 if (strpos($content, $picture_marker))
 			 {
@@ -512,6 +516,8 @@ class PEPjsonServer {
     					 $content = $content."[/caption]";
 				    }
 				    else {
+						
+						
 				        $content = $content.'<img class="aligncenter wp-image-'.attachment_url_to_postid(wp_get_attachment_url($attach_id)).$i_size.'" src="'.wp_get_attachment_url($attach_id).'" alt="" width="'.$image_width.'" height="'.$image_height.'">';
     			
 				    }
@@ -519,12 +525,22 @@ class PEPjsonServer {
 					  
 					
 				}
+				else if ('1' == $upload_as_block)
+				{
+					$content = $content.$image_prefix.'<img src="'.wp_get_attachment_url($attach_id).'" alt="" />';
+					 if ($caption != '')
+					 {
+						$content = $content.'<figcaption>'.$caption.'</figcaption>';
+					 }
+					 $content = $content.$image_suffix;
+				}
 				else {
 					$content = $content.'<img class="aligncenter wp-image-30038 size-large" src="'.wp_get_attachment_url($attach_id).'" alt="" />';
 					 if ($caption != '')
 					 {
 						$content = $content.'<figcaption class="tdb-caption-text">'.$caption.'</figcaption>';
 					 }
+
 				}
 			 }
 			 $content_post->post_content = $content;
@@ -744,8 +760,8 @@ class PEPjsonServer {
 	{
 		pep_writelog('obtaining version number');
 		
-		$VersionNumber = '2.58';
-        $VersionDate = '2024-02-22';
+		$VersionNumber = '2.59';
+        $VersionDate = '2024-09-03';
     
     
 		$id = $request['id'];

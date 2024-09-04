@@ -3,7 +3,7 @@
 Plugin Name: PEP - Pongrass Editorial Wordpress Plugin
 Plugin URI: http://fc.pongrass.com.au/~ronin/pep
 Description: A WordPress plugin for integration with the Pongrass Advertising and Editorial system
-Version: 1.0.5
+Version: 1.0.6
 Author: Ronin, ronin@pongrass.com.au
 License: GPL2
 */
@@ -30,8 +30,8 @@ License: GPL2
 // some definition we will use
 define( 'PEP_PUGIN_NAME', 'Pongrass Editorial Plugin');
 define( 'PEP_PLUGIN_DIRECTORY', 'PongrassEditorialPlugin');
-define( 'PEP_CURRENT_VERSION', '1.0.5' );
-define( 'PEP_CURRENT_BUILD', '137' );
+define( 'PEP_CURRENT_VERSION', '1.0.7' );
+define( 'PEP_CURRENT_BUILD', '139' );
 define( 'PEP_LOGPATH', __DIR__.'/pep-logs/');
 define( 'PEP_DEBUG', true);		# never use debug mode on productive systems
 // i18n plugin domain for language files
@@ -221,20 +221,6 @@ function remove_extra_image_sizes() {
     }
 }
  
-
-
-
-
-function register_hooks()
-{
-    pep_writelog('hook called');
-    
-}
-
-
-//add_action( 'wp_enqueue_scripts', 'register_hooks' );
-add_action( 'init', 'register_hooks' );
-
 
 register_activation_hook(__FILE__, 'pep_activate');
 register_deactivation_hook(__FILE__, 'pep_deactivate');
