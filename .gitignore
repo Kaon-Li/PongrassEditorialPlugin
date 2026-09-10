@@ -1,0 +1,26 @@
+# PEP operational logs.
+# These can contain post content and author email addresses when
+# PEP_LOG_PAYLOADS is enabled, so they must never reach the repository.
+# The guard files in pep-logs/ (.htaccess, index.php, index.html) stay tracked.
+pep-logs/*.log
+pep-logs/*.log.*
+
+# Removed in 2.7.0: the whitelist now lives in wp_options. Ignored so a
+# stale copy left on an upgraded install cannot be committed back.
+whitelist_*.txt
+
+# Composer
+composer.phar
+/vendor/bin/
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
