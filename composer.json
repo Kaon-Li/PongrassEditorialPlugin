@@ -4,6 +4,11 @@
     "type":"wordpress-plugin",
     "license" : "MIT",
     "require": {
-        "php": ">=7.0"
+        "php": ">=8.0"
+    },
+    "config": {
+        "platform": {
+            "php": "8.0.0"
+        }
     }
 }

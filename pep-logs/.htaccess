@@ -1,0 +1,9 @@
+# Added by the Pongrass Editorial Plugin.
+# Log files can contain post content and user data.
+<IfModule mod_authz_core.c>
+	Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+	Order allow,deny
+	Deny from all
+</IfModule>

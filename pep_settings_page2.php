@@ -1,1 +1,0 @@
-<div class="wrap"><h2><?php print EPT_PUGIN_NAME ." ". EPT_CURRENT_VERSION. "<sub>(Build ".PEP_CURRENT_BUILD.")</sub>"; ?></h2>more settings</div>
