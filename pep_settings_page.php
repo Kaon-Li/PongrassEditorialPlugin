@@ -123,6 +123,36 @@ if ( $pep_new_key ) {
 			</td>
 		</tr>
 
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Suppress other plugins', EMU2_I18N_DOMAIN ); ?></th>
+			<td>
+				<?php if ( defined( 'PEP_DISABLE_OTHER_PLUGINS' ) ) : ?>
+					<p>
+						<em>
+						<?php
+						printf(
+							/* translators: %s: on or off */
+							esc_html__( 'Overridden in wp-config.php by PEP_DISABLE_OTHER_PLUGINS, currently %s. This setting is ignored.', EMU2_I18N_DOMAIN ),
+							PEP_DISABLE_OTHER_PLUGINS
+								? esc_html__( 'on', EMU2_I18N_DOMAIN )
+								: esc_html__( 'off', EMU2_I18N_DOMAIN )
+						);
+						?>
+						</em>
+					</p>
+				<?php else : ?>
+					<label>
+						<input type="checkbox" name="pep_disable_other_plugins" value="1"
+							<?php checked( (bool) get_option( 'pep_disable_other_plugins', 1 ) ); ?> />
+						<?php esc_html_e( 'Unload all other plugins during RPC requests', EMU2_I18N_DOMAIN ); ?>
+					</label>
+					<p class="description">
+						<?php esc_html_e( 'On by default: the endpoint only needs core, and skipping the plugin stack makes article pushes faster. It also unloads your security plugins for those requests, so turn it off if you want a firewall or malware scanner to see RPC traffic. Expect a slower bootstrap, and test on staging first in case another plugin hooks post creation.', EMU2_I18N_DOMAIN ); ?>
+					</p>
+				<?php endif; ?>
+			</td>
+		</tr>
+
 		<?php for ( $pep_i = 1; $pep_i <= PEP_WHITELIST_SLOTS; $pep_i++ ) : ?>
 		<tr>
 			<th scope="row">

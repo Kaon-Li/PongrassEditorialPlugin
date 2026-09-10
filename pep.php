@@ -113,6 +113,7 @@ function pep_uninstall() {
 	delete_option( 'pep_option_enable_logging' );
 	delete_option( PEP_OPT_API_KEY_HASH );
 	delete_option( PEP_OPT_LEGACY_MODE );
+	delete_option( 'pep_disable_other_plugins' );
 	delete_option( 'pep_on_off' );
 
 	for ( $i = 1; $i <= PEP_WHITELIST_SLOTS; $i++ ) {
@@ -248,6 +249,23 @@ function pep_register_settings() {
 		array(
 			'type'              => 'boolean',
 			'default'           => 0,
+			'sanitize_callback' => static function ( $value ) {
+				return empty( $value ) ? 0 : 1;
+			},
+			'show_in_rest'      => false,
+		)
+	);
+
+	// Read by pep_should_suppress_plugins() in pep_config.php. Kept as a
+	// setting so a site without wp-config.php access can still turn plugin
+	// suppression off. Option name is a literal in both places because
+	// pep_config.php runs before this file is loaded.
+	register_setting(
+		'pep-settings-group',
+		'pep_disable_other_plugins',
+		array(
+			'type'              => 'boolean',
+			'default'           => 1,
 			'sanitize_callback' => static function ( $value ) {
 				return empty( $value ) ? 0 : 1;
 			},

@@ -65,6 +65,9 @@ Put these in `wp-config.php`, above the `/* That's all, stop editing! */` line.
 
 * `PEP_DISABLE_OTHER_PLUGINS` - set false to keep other plugins loaded during
   RPC requests. Defaults to true, which also disables any security plugin.
+  There is an equivalent checkbox on the PEP settings screen for sites with
+  no access to wp-config.php; this constant overrides it when defined, and
+  the settings screen says so rather than showing a control that does nothing.
 * `PEP_TRUST_PROXY_HEADER` - set true only behind a reverse proxy that
   overwrites `X-Forwarded-For`. Otherwise the header is ignored, since a client
   can set it to anything.
@@ -114,6 +117,9 @@ breaking changes below before upgrading a live site.
   It had been reporting 2.63 / 2025-03-11 while the plugin constant said
   2.6.4 and the plugin header said 2.6.2.
 * `pep_get_version` now also returns `build`.
+* Added a "Suppress other plugins" checkbox to the settings screen, so a
+  site with no wp-config.php access can turn plugin suppression off. The
+  PEP_DISABLE_OTHER_PLUGINS constant still overrides it.
 * Added an admin notice when the `Version:` line in the pep.php header drifts
   from `PEP_CURRENT_VERSION`. WordPress parses that header as a static
   comment, so it is the one value that still has to be typed twice.

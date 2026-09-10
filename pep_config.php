@@ -78,15 +78,39 @@ function pep_disable_other_plugins( $plugins ) {
 		return $plugins;
 	}
 
-	// The opt-out is tested here rather than before the filter is added.
-	// This callback runs from wp-settings.php, by which point wp-config.php
-	// has been parsed; the registration site below runs before wp-load.php,
-	// where anything defined in wp-config.php is not yet visible.
-	if ( defined( 'PEP_DISABLE_OTHER_PLUGINS' ) && ! PEP_DISABLE_OTHER_PLUGINS ) {
+	if ( ! pep_should_suppress_plugins() ) {
 		return $plugins;
 	}
 
 	return array();
+}
+
+/**
+ * Whether other plugins should be suppressed for this RPC request.
+ *
+ * Checked here rather than before the filter is registered. This runs from
+ * wp-settings.php, by which point wp-config.php has been parsed and the
+ * options API is up; the registration site below runs before wp-load.php,
+ * where neither is true yet.
+ *
+ * Precedence: the wp-config.php constant wins when defined, otherwise the
+ * "Suppress other plugins" setting on the PEP admin screen, otherwise on.
+ *
+ * @return bool
+ */
+function pep_should_suppress_plugins() {
+	if ( defined( 'PEP_DISABLE_OTHER_PLUGINS' ) ) {
+		return (bool) PEP_DISABLE_OTHER_PLUGINS;
+	}
+
+	// Safe to read an option at this point: wp-settings.php has already set
+	// up $wpdb and the options API, since it is reading the active plugin
+	// list through the very same API to get here.
+	if ( function_exists( 'get_option' ) ) {
+		return (bool) get_option( 'pep_disable_other_plugins', 1 );
+	}
+
+	return true;
 }
 
 if ( ! defined( 'ABSPATH' ) ) {

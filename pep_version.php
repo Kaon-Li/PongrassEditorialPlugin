@@ -24,7 +24,7 @@ if ( ! defined( 'PEP_CURRENT_VERSION' ) ) {
 }
 
 if ( ! defined( 'PEP_CURRENT_BUILD' ) ) {
-	define( 'PEP_CURRENT_BUILD', '148' );
+	define( 'PEP_CURRENT_BUILD', '149' );
 }
 
 if ( ! defined( 'PEP_VERSION_DATE' ) ) {
