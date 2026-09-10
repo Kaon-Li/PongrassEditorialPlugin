@@ -21,9 +21,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'PEP_OPT_API_KEY_HASH', 'pep_api_key_hash' );
-define( 'PEP_OPT_LEGACY_MODE', 'pep_legacy_ip_only' );
-define( 'PEP_WHITELIST_SLOTS', 5 );
+// Guarded: when plugin suppression is off, pep.php and pep_json.php can both
+// reach this file, and a symlinked plugin directory can defeat the realpath
+// de-duplication that require_once relies on.
+if ( ! defined( 'PEP_OPT_API_KEY_HASH' ) ) {
+	define( 'PEP_OPT_API_KEY_HASH', 'pep_api_key_hash' );
+}
+
+if ( ! defined( 'PEP_OPT_LEGACY_MODE' ) ) {
+	define( 'PEP_OPT_LEGACY_MODE', 'pep_legacy_ip_only' );
+}
+
+if ( ! defined( 'PEP_WHITELIST_SLOTS' ) ) {
+	define( 'PEP_WHITELIST_SLOTS', 5 );
+}
 
 /**
  * The configured IP whitelist entries, empty ones removed.

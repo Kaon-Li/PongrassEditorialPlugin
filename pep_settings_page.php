@@ -124,34 +124,77 @@ if ( $pep_new_key ) {
 		</tr>
 
 		<tr>
-			<th scope="row"><?php esc_html_e( 'Suppress other plugins', EMU2_I18N_DOMAIN ); ?></th>
+			<th scope="row"><?php esc_html_e( 'Plugins during RPC requests', EMU2_I18N_DOMAIN ); ?></th>
 			<td>
 				<?php if ( defined( 'PEP_DISABLE_OTHER_PLUGINS' ) ) : ?>
 					<p>
 						<em>
 						<?php
 						printf(
-							/* translators: %s: on or off */
-							esc_html__( 'Overridden in wp-config.php by PEP_DISABLE_OTHER_PLUGINS, currently %s. This setting is ignored.', EMU2_I18N_DOMAIN ),
-							PEP_DISABLE_OTHER_PLUGINS
-								? esc_html__( 'on', EMU2_I18N_DOMAIN )
-								: esc_html__( 'off', EMU2_I18N_DOMAIN )
+							/* translators: %s: the resolved mode */
+							esc_html__( 'Overridden in wp-config.php by PEP_DISABLE_OTHER_PLUGINS, currently resolving to "%s". These settings are ignored.', EMU2_I18N_DOMAIN ),
+							esc_html( pep_suppression_mode() )
 						);
 						?>
 						</em>
 					</p>
 				<?php else : ?>
-					<label>
-						<input type="checkbox" name="pep_disable_other_plugins" value="1"
-							<?php checked( (bool) get_option( 'pep_disable_other_plugins', 1 ) ); ?> />
-						<?php esc_html_e( 'Unload all other plugins during RPC requests', EMU2_I18N_DOMAIN ); ?>
-					</label>
+					<?php $pep_mode = pep_suppression_mode(); ?>
+					<fieldset>
+						<label style="display:block;margin-bottom:4px;">
+							<input type="radio" name="pep_suppression_mode" value="all" <?php checked( 'all', $pep_mode ); ?> />
+							<?php esc_html_e( 'Unload all other plugins', EMU2_I18N_DOMAIN ); ?>
+						</label>
+						<label style="display:block;margin-bottom:4px;">
+							<input type="radio" name="pep_suppression_mode" value="selected" <?php checked( 'selected', $pep_mode ); ?> />
+							<?php esc_html_e( 'Unload only the plugins I choose below', EMU2_I18N_DOMAIN ); ?>
+						</label>
+						<label style="display:block;">
+							<input type="radio" name="pep_suppression_mode" value="none" <?php checked( 'none', $pep_mode ); ?> />
+							<?php esc_html_e( 'Load everything, same as a normal page', EMU2_I18N_DOMAIN ); ?>
+						</label>
+					</fieldset>
 					<p class="description">
-						<?php esc_html_e( 'On by default: the endpoint only needs core, and skipping the plugin stack makes article pushes faster. It also unloads your security plugins for those requests, so turn it off if you want a firewall or malware scanner to see RPC traffic. Expect a slower bootstrap, and test on staging first in case another plugin hooks post creation.', EMU2_I18N_DOMAIN ); ?>
+						<?php esc_html_e( 'Unloading everything is fastest, but it also unloads your security plugins, so nothing inspects RPC traffic. Choosing individually lets you drop the plugins that interfere with imports while keeping a firewall active.', EMU2_I18N_DOMAIN ); ?>
 					</p>
 				<?php endif; ?>
 			</td>
 		</tr>
+
+		<?php if ( ! defined( 'PEP_DISABLE_OTHER_PLUGINS' ) ) : ?>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Plugins to unload', EMU2_I18N_DOMAIN ); ?></th>
+			<td>
+				<?php
+				$pep_installed  = pep_get_installed_plugins();
+				$pep_selected   = (array) get_option( 'pep_suppressed_plugins', array() );
+				$pep_active     = (array) get_option( 'active_plugins', array() );
+				?>
+				<?php if ( empty( $pep_installed ) ) : ?>
+					<p><em><?php esc_html_e( 'No other plugins are installed.', EMU2_I18N_DOMAIN ); ?></em></p>
+				<?php else : ?>
+					<fieldset style="max-height:22em;overflow:auto;border:1px solid #dcdcde;padding:8px 12px;background:#fff;">
+					<?php foreach ( $pep_installed as $pep_file => $pep_data ) : ?>
+						<label style="display:block;margin-bottom:5px;">
+							<input type="checkbox" name="pep_suppressed_plugins[]"
+								value="<?php echo esc_attr( $pep_file ); ?>"
+								<?php checked( in_array( $pep_file, $pep_selected, true ) ); ?> />
+							<strong><?php echo esc_html( $pep_data['Name'] ); ?></strong>
+							<?php if ( ! in_array( $pep_file, $pep_active, true ) ) : ?>
+								<span style="color:#646970;">— <?php esc_html_e( 'inactive', EMU2_I18N_DOMAIN ); ?></span>
+							<?php endif; ?>
+							<br />
+							<code style="font-size:11px;color:#646970;"><?php echo esc_html( $pep_file ); ?></code>
+						</label>
+					<?php endforeach; ?>
+					</fieldset>
+					<p class="description">
+						<?php esc_html_e( 'Only applies when "Unload only the plugins I choose below" is selected. Ticked plugins are skipped for RPC requests only; normal page loads are unaffected. PEP itself is not listed, since the endpoint loads what it needs directly.', EMU2_I18N_DOMAIN ); ?>
+					</p>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<?php endif; ?>
 
 		<?php for ( $pep_i = 1; $pep_i <= PEP_WHITELIST_SLOTS; $pep_i++ ) : ?>
 		<tr>

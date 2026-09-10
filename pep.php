@@ -3,7 +3,7 @@
 Plugin Name: PEP - Pongrass Editorial Wordpress Plugin
 Plugin URI: http://fc.pongrass.com.au/~ronin/pep
 Description: A WordPress plugin for integration with the Pongrass Advertising and Editorial system
-Version: 2.7.1
+Version: 2.7.2
 Author: Ronin, ronin@pongrass.com.au
 License: GPL2
 Requires PHP: 8.0
@@ -53,6 +53,12 @@ define( 'PEP_ADMIN_CAPABILITY', 'manage_options' );
 
 require_once __DIR__ . '/pep_logfilehandling.php';
 require_once __DIR__ . '/pep_security.php';
+
+// For pep_suppression_mode() and pep_suppressed_plugins(), which the settings
+// screen reads. Only the function definitions are wanted here; the bootstrap
+// block in that file is guarded on ABSPATH, which is already defined by the
+// time a plugin loads, so requiring it does not re-enter WordPress.
+require_once __DIR__ . '/pep_config.php';
 
 /**
  * Load the language file for the current locale.
@@ -114,6 +120,8 @@ function pep_uninstall() {
 	delete_option( PEP_OPT_API_KEY_HASH );
 	delete_option( PEP_OPT_LEGACY_MODE );
 	delete_option( 'pep_disable_other_plugins' );
+	delete_option( 'pep_suppression_mode' );
+	delete_option( 'pep_suppressed_plugins' );
 	delete_option( 'pep_on_off' );
 
 	for ( $i = 1; $i <= PEP_WHITELIST_SLOTS; $i++ ) {
@@ -256,22 +264,81 @@ function pep_register_settings() {
 		)
 	);
 
-	// Read by pep_should_suppress_plugins() in pep_config.php. Kept as a
-	// setting so a site without wp-config.php access can still turn plugin
-	// suppression off. Option name is a literal in both places because
-	// pep_config.php runs before this file is loaded.
+	// Read by pep_suppression_mode() in pep_config.php. Kept as settings so
+	// a site without wp-config.php access can still control this. Option
+	// names are literals in both places because pep_config.php runs before
+	// this file is loaded.
 	register_setting(
 		'pep-settings-group',
-		'pep_disable_other_plugins',
+		'pep_suppression_mode',
 		array(
-			'type'              => 'boolean',
-			'default'           => 1,
+			'type'              => 'string',
+			'default'           => 'all',
 			'sanitize_callback' => static function ( $value ) {
-				return empty( $value ) ? 0 : 1;
+				$value = is_string( $value ) ? $value : '';
+				return in_array( $value, array( 'all', 'none', 'selected' ), true ) ? $value : 'all';
 			},
 			'show_in_rest'      => false,
 		)
 	);
+
+	register_setting(
+		'pep-settings-group',
+		'pep_suppressed_plugins',
+		array(
+			'type'              => 'array',
+			'default'           => array(),
+			'sanitize_callback' => 'pep_sanitize_suppressed_plugins',
+			'show_in_rest'      => false,
+		)
+	);
+}
+
+/**
+ * Keep only entries that name a plugin actually installed on this site.
+ *
+ * @param mixed $value Submitted list of plugin files.
+ * @return string[]
+ */
+function pep_sanitize_suppressed_plugins( $value ) {
+	if ( ! is_array( $value ) ) {
+		return array();
+	}
+
+	$installed = array_keys( pep_get_installed_plugins() );
+	$clean     = array();
+
+	foreach ( $value as $plugin_file ) {
+		$plugin_file = (string) $plugin_file;
+
+		if ( in_array( $plugin_file, $installed, true ) ) {
+			$clean[] = $plugin_file;
+		}
+	}
+
+	return array_values( array_unique( $clean ) );
+}
+
+/**
+ * Every plugin installed on this site, excluding PEP itself.
+ *
+ * PEP is omitted deliberately: the endpoint loads what it needs by direct
+ * require, so suppressing the plugin bootstrap changes nothing, and offering
+ * it as a choice would only be confusing.
+ *
+ * @return array<string,array> Plugin file => plugin header data.
+ */
+function pep_get_installed_plugins() {
+	if ( ! function_exists( 'get_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	$plugins = get_plugins();
+	$self    = plugin_basename( __FILE__ );
+
+	unset( $plugins[ $self ] );
+
+	return $plugins;
 }
 add_action( 'admin_init', 'pep_register_settings' );
 

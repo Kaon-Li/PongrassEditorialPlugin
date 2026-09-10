@@ -20,11 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'PEP_CURRENT_VERSION' ) ) {
-	define( 'PEP_CURRENT_VERSION', '2.7.1' );
+	define( 'PEP_CURRENT_VERSION', '2.7.2' );
 }
 
 if ( ! defined( 'PEP_CURRENT_BUILD' ) ) {
-	define( 'PEP_CURRENT_BUILD', '150' );
+	define( 'PEP_CURRENT_BUILD', '151' );
 }
 
 if ( ! defined( 'PEP_VERSION_DATE' ) ) {

@@ -4,7 +4,7 @@ Tags: wordpress plugin, plugin, pongrass, pongrass editorial
 Requires at least: 5.6
 Requires PHP: 8.0
 Tested up to: 6.7
-Stable tag: "2.7.1"
+Stable tag: "2.7.2"
 
 Pongrass Editorial Plugin. For use in integration with the Pongrass Advertising and Editorial system for WordPress
 
@@ -107,6 +107,27 @@ Security release. The RPC endpoint now requires authentication. Read the
 breaking changes below before upgrading a live site.
 
 == Changelog ==
+
+= 2.7.2 =
+
+* Plugin suppression is now per-plugin. The settings screen lists every
+  installed plugin and offers three modes: unload all others, unload only
+  the ones ticked, or load everything. Unloading all of them also unloads
+  any security plugin, so nothing inspects RPC traffic; choosing
+  individually lets a firewall stay active while dropping the plugins that
+  interfere with imports.
+* Suppression applies only to RPC requests. Normal page loads register no
+  filter at all.
+* Network-active plugins on multisite are now handled with a separate
+  callback, because site_option_active_sitewide_plugins is keyed by plugin
+  file rather than being a plain list.
+* The 2.7.1 pep_disable_other_plugins boolean is migrated automatically:
+  1 becomes "all", 0 becomes "none". PEP_DISABLE_OTHER_PLUGINS still
+  overrides everything.
+* Guarded the define() calls in pep_security.php. With suppression off,
+  pep.php and pep_json.php can both reach that file, and a symlinked
+  plugin directory can defeat the realpath de-duplication require_once
+  depends on.
 
 = 2.7.1 =
 

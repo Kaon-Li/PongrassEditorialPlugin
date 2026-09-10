@@ -80,55 +80,141 @@ function pep_locate_wp_load() {
 }
 
 /**
- * Suppress every other plugin for the duration of an RPC request.
+ * Which plugins to unload for the duration of an RPC request.
  *
- * The endpoint only needs core, and loading the full plugin stack on every
- * article push is slow. Note that this also disables any security plugin,
- * so it can be turned off by defining PEP_DISABLE_OTHER_PLUGINS as false.
+ * Returns one of:
+ *   'all'      - unload every other plugin. Fastest, but also unloads any
+ *                security plugin, so nothing inspects RPC traffic.
+ *   'none'     - load the full plugin stack, same as a normal page load.
+ *   'selected' - unload only the plugins listed in pep_suppressed_plugins.
  *
- * @param mixed $plugins Active plugin list.
- * @return mixed
- */
-function pep_disable_other_plugins( $plugins ) {
-	// Keyed off a constant set by the endpoint rather than sniffing
-	// PHP_SELF, which is derived from the request and can be manipulated.
-	if ( ! defined( 'PEP_RPC_REQUEST' ) || ! PEP_RPC_REQUEST ) {
-		return $plugins;
-	}
-
-	if ( ! pep_should_suppress_plugins() ) {
-		return $plugins;
-	}
-
-	return array();
-}
-
-/**
- * Whether other plugins should be suppressed for this RPC request.
- *
- * Checked here rather than before the filter is registered. This runs from
+ * Resolved here rather than before the filter is registered. This runs from
  * wp-settings.php, by which point wp-config.php has been parsed and the
  * options API is up; the registration site below runs before wp-load.php,
  * where neither is true yet.
  *
- * Precedence: the wp-config.php constant wins when defined, otherwise the
- * "Suppress other plugins" setting on the PEP admin screen, otherwise on.
+ * Precedence: the wp-config.php constant wins when defined, then the admin
+ * setting, then the pre-2.7.2 boolean option, then 'all'.
  *
- * @return bool
+ * @return string
  */
-function pep_should_suppress_plugins() {
+function pep_suppression_mode() {
 	if ( defined( 'PEP_DISABLE_OTHER_PLUGINS' ) ) {
-		return (bool) PEP_DISABLE_OTHER_PLUGINS;
+		return PEP_DISABLE_OTHER_PLUGINS ? 'all' : 'none';
 	}
 
 	// Safe to read an option at this point: wp-settings.php has already set
 	// up $wpdb and the options API, since it is reading the active plugin
 	// list through the very same API to get here.
-	if ( function_exists( 'get_option' ) ) {
-		return (bool) get_option( 'pep_disable_other_plugins', 1 );
+	if ( ! function_exists( 'get_option' ) ) {
+		return 'all';
 	}
 
-	return true;
+	$mode = get_option( 'pep_suppression_mode', '' );
+
+	if ( in_array( $mode, array( 'all', 'none', 'selected' ), true ) ) {
+		return $mode;
+	}
+
+	// Carried over from the 2.7.1 boolean, for installs that set it before
+	// the per-plugin list existed.
+	$legacy = get_option( 'pep_disable_other_plugins', null );
+
+	if ( null !== $legacy ) {
+		return empty( $legacy ) ? 'none' : 'all';
+	}
+
+	return 'all';
+}
+
+/**
+ * The plugin files to unload when the mode is 'selected'.
+ *
+ * @return string[] e.g. array( 'akismet/akismet.php' )
+ */
+function pep_suppressed_plugins() {
+	if ( ! function_exists( 'get_option' ) ) {
+		return array();
+	}
+
+	$selected = get_option( 'pep_suppressed_plugins', array() );
+
+	return is_array( $selected ) ? array_values( array_filter( array_map( 'strval', $selected ) ) ) : array();
+}
+
+/**
+ * Whether the plugin list should be altered at all for this request.
+ *
+ * @return bool
+ */
+function pep_is_rpc_request() {
+	// Keyed off a constant set by the endpoint rather than sniffing
+	// PHP_SELF, which is derived from the request and can be manipulated.
+	return defined( 'PEP_RPC_REQUEST' ) && PEP_RPC_REQUEST;
+}
+
+/**
+ * Filter for option_active_plugins: a list of plugin files.
+ *
+ * @param mixed $plugins Active plugin list.
+ * @return mixed
+ */
+function pep_filter_active_plugins( $plugins ) {
+	if ( ! pep_is_rpc_request() || ! is_array( $plugins ) ) {
+		return $plugins;
+	}
+
+	$mode = pep_suppression_mode();
+
+	if ( 'none' === $mode ) {
+		return $plugins;
+	}
+
+	if ( 'all' === $mode ) {
+		return array();
+	}
+
+	$suppress = pep_suppressed_plugins();
+
+	if ( empty( $suppress ) ) {
+		return $plugins;
+	}
+
+	// Reindexed, because wp_get_active_and_valid_plugins() expects a list.
+	return array_values( array_diff( $plugins, $suppress ) );
+}
+
+/**
+ * Filter for site_option_active_sitewide_plugins on multisite.
+ *
+ * That option is keyed by plugin file with an activation timestamp as the
+ * value, so entries are removed by key rather than by value.
+ *
+ * @param mixed $plugins Network-active plugin map.
+ * @return mixed
+ */
+function pep_filter_sitewide_plugins( $plugins ) {
+	if ( ! pep_is_rpc_request() || ! is_array( $plugins ) ) {
+		return $plugins;
+	}
+
+	$mode = pep_suppression_mode();
+
+	if ( 'none' === $mode ) {
+		return $plugins;
+	}
+
+	if ( 'all' === $mode ) {
+		return array();
+	}
+
+	$suppress = pep_suppressed_plugins();
+
+	if ( empty( $suppress ) ) {
+		return $plugins;
+	}
+
+	return array_diff_key( $plugins, array_flip( $suppress ) );
 }
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -152,16 +238,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// CWD-relative path.
 	require_once dirname( $pep_wp_load ) . '/wp-includes/plugin.php';
 
-	// Always registered. Whether it actually suppresses anything is decided
-	// inside the callback, so PEP_DISABLE_OTHER_PLUGINS can be set from
-	// wp-config.php.
-	add_filter( 'option_active_plugins', 'pep_disable_other_plugins', 1 );
-	add_filter( 'site_option_active_sitewide_plugins', 'pep_disable_other_plugins', 1 );
+	// Always registered. What they actually do is decided inside the
+	// callbacks, so the mode can come from wp-config.php or from an option.
+	add_filter( 'option_active_plugins', 'pep_filter_active_plugins', 1 );
+	add_filter( 'site_option_active_sitewide_plugins', 'pep_filter_sitewide_plugins', 1 );
 
 	require_once $pep_wp_load;
 
-	remove_filter( 'option_active_plugins', 'pep_disable_other_plugins', 1 );
-	remove_filter( 'site_option_active_sitewide_plugins', 'pep_disable_other_plugins', 1 );
+	remove_filter( 'option_active_plugins', 'pep_filter_active_plugins', 1 );
+	remove_filter( 'site_option_active_sitewide_plugins', 'pep_filter_sitewide_plugins', 1 );
 }
 
 /**
