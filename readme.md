@@ -61,7 +61,8 @@ Whitelist entries accept a single address (`203.0.113.9`), a CIDR range
 
 == wp-config.php constants ==
 
-* `PEP_WP_LOAD_PATH` - absolute path to `wp-load.php` for a non-standard layout.
+Put these in `wp-config.php`, above the `/* That's all, stop editing! */` line.
+
 * `PEP_DISABLE_OTHER_PLUGINS` - set false to keep other plugins loaded during
   RPC requests. Defaults to true, which also disables any security plugin.
 * `PEP_TRUST_PROXY_HEADER` - set true only behind a reverse proxy that
@@ -72,6 +73,22 @@ Whitelist entries accept a single address (`203.0.113.9`), a CIDR range
   clients send a key.
 * `PEP_LOG_PAYLOADS` - set true to log full request and response bodies. Off by
   default because those contain post content and user email addresses.
+
+== pep-local-config.php ==
+
+One setting cannot live in `wp-config.php`, because it is what locates
+`wp-config.php` in the first place:
+
+* `PEP_WP_LOAD_PATH` - absolute path to `wp-load.php` for a non-standard layout.
+
+If the plugin directory contains `pep-local-config.php`, it is loaded before
+anything else and can define it:
+
+    <?php
+    define( 'PEP_WP_LOAD_PATH', '/www/example/public/web/wp/wp-load.php' );
+
+The file is per-site and is not tracked in git. Everything else belongs in
+`wp-config.php`.
 
 == Screenshots ==
 

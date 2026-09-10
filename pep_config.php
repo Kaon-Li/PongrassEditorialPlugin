@@ -21,6 +21,14 @@
  * @package PEP
  */
 
+// Optional per-site overrides that have to exist before WordPress is found.
+// PEP_WP_LOAD_PATH is the only one that genuinely belongs here: it is what
+// locates wp-config.php, so it cannot be set from inside wp-config.php.
+// Everything else should go in wp-config.php. Not tracked in git.
+if ( file_exists( __DIR__ . '/pep-local-config.php' ) ) {
+	require_once __DIR__ . '/pep-local-config.php';
+}
+
 /**
  * Locate wp-load.php.
  *
@@ -66,11 +74,19 @@ function pep_locate_wp_load() {
 function pep_disable_other_plugins( $plugins ) {
 	// Keyed off a constant set by the endpoint rather than sniffing
 	// PHP_SELF, which is derived from the request and can be manipulated.
-	if ( defined( 'PEP_RPC_REQUEST' ) && PEP_RPC_REQUEST ) {
-		return array();
+	if ( ! defined( 'PEP_RPC_REQUEST' ) || ! PEP_RPC_REQUEST ) {
+		return $plugins;
 	}
 
-	return $plugins;
+	// The opt-out is tested here rather than before the filter is added.
+	// This callback runs from wp-settings.php, by which point wp-config.php
+	// has been parsed; the registration site below runs before wp-load.php,
+	// where anything defined in wp-config.php is not yet visible.
+	if ( defined( 'PEP_DISABLE_OTHER_PLUGINS' ) && ! PEP_DISABLE_OTHER_PLUGINS ) {
+		return $plugins;
+	}
+
+	return array();
 }
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -89,24 +105,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 		exit;
 	}
 
-	$pep_suppress_plugins = ! defined( 'PEP_DISABLE_OTHER_PLUGINS' ) || PEP_DISABLE_OTHER_PLUGINS;
+	// plugin.php has to be in scope before wp-settings.php reads the active
+	// plugin list, so pull it in from the located root rather than via a
+	// CWD-relative path.
+	require_once dirname( $pep_wp_load ) . '/wp-includes/plugin.php';
 
-	if ( $pep_suppress_plugins ) {
-		// plugin.php has to be in scope before wp-settings.php reads the
-		// active plugin list, so pull it in from the located root rather
-		// than via a CWD-relative path.
-		require_once dirname( $pep_wp_load ) . '/wp-includes/plugin.php';
-
-		add_filter( 'option_active_plugins', 'pep_disable_other_plugins', 1 );
-		add_filter( 'site_option_active_sitewide_plugins', 'pep_disable_other_plugins', 1 );
-	}
+	// Always registered. Whether it actually suppresses anything is decided
+	// inside the callback, so PEP_DISABLE_OTHER_PLUGINS can be set from
+	// wp-config.php.
+	add_filter( 'option_active_plugins', 'pep_disable_other_plugins', 1 );
+	add_filter( 'site_option_active_sitewide_plugins', 'pep_disable_other_plugins', 1 );
 
 	require_once $pep_wp_load;
 
-	if ( $pep_suppress_plugins ) {
-		remove_filter( 'option_active_plugins', 'pep_disable_other_plugins', 1 );
-		remove_filter( 'site_option_active_sitewide_plugins', 'pep_disable_other_plugins', 1 );
-	}
+	remove_filter( 'option_active_plugins', 'pep_disable_other_plugins', 1 );
+	remove_filter( 'site_option_active_sitewide_plugins', 'pep_disable_other_plugins', 1 );
 }
 
 /**

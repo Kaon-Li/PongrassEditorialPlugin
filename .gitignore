@@ -24,3 +24,7 @@ composer.phar
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Per-site pre-bootstrap overrides (PEP_WP_LOAD_PATH). Not portable between
+# installs, so it stays out of the repository.
+pep-local-config.php
