@@ -41,21 +41,39 @@ function pep_locate_wp_load() {
 
 	// Normal layout: wp-content/plugins/PongrassEditorialPlugin/ is three
 	// levels below the WordPress root.
-	$dir = __DIR__;
+	$starting_points = array( __DIR__ );
 
-	for ( $depth = 0; $depth < 8; $depth++ ) {
-		$candidate = $dir . '/wp-load.php';
+	// When the plugin directory is a symlink or a junction, __DIR__ resolves
+	// to the link target, which is outside the WordPress tree, and walking
+	// up from it never reaches wp-load.php. The path the web server actually
+	// dispatched keeps the in-tree view, so try that too.
+	if ( ! empty( $_SERVER['SCRIPT_FILENAME'] ) ) {
+		$script_dir = dirname( (string) $_SERVER['SCRIPT_FILENAME'] );
 
-		if ( file_exists( $candidate ) ) {
-			return $candidate;
+		if ( is_dir( $script_dir ) ) {
+			$starting_points[] = $script_dir;
 		}
+	}
 
-		$parent = dirname( $dir );
-		if ( $parent === $dir ) {
-			break;
+	if ( ! empty( $_SERVER['DOCUMENT_ROOT'] ) && is_dir( (string) $_SERVER['DOCUMENT_ROOT'] ) ) {
+		$starting_points[] = (string) $_SERVER['DOCUMENT_ROOT'];
+	}
+
+	foreach ( array_unique( $starting_points ) as $dir ) {
+		for ( $depth = 0; $depth < 8; $depth++ ) {
+			$candidate = $dir . '/wp-load.php';
+
+			if ( file_exists( $candidate ) ) {
+				return $candidate;
+			}
+
+			$parent = dirname( $dir );
+			if ( $parent === $dir ) {
+				break;
+			}
+
+			$dir = $parent;
 		}
-
-		$dir = $parent;
 	}
 
 	return false;

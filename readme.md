@@ -117,6 +117,11 @@ breaking changes below before upgrading a live site.
   It had been reporting 2.63 / 2025-03-11 while the plugin constant said
   2.6.4 and the plugin header said 2.6.2.
 * `pep_get_version` now also returns `build`.
+* WordPress could not be located when the plugin directory is a symlink or
+  junction: __DIR__ resolves to the link target, outside the WordPress tree,
+  so walking up from it never reaches wp-load.php and every RPC request
+  failed with "WordPress could not be loaded". SCRIPT_FILENAME and
+  DOCUMENT_ROOT are now tried as additional starting points.
 * Added a "Suppress other plugins" checkbox to the settings screen, so a
   site with no wp-config.php access can turn plugin suppression off. The
   PEP_DISABLE_OTHER_PLUGINS constant still overrides it.
